@@ -1,0 +1,252 @@
+---
+title: "Exploring Retail Data: A Practical Data Science Project"
+format: html
+---
+
+While purchasing items either online or in-store, customers often share some of their personal information. Your client has collected such data and now seeks insights to answer a few specific questions based on it. Your task is to assist the client by analyzing the dataset and providing meaningful answers.
+
+The dataset `customer_data.csv` required for this task is available in your designated [Google Drive Folder](https://shorturl.at/yAMjV).
+
+
+**1. Load tidyverse and read the csv file.**
+
+```{r}
+library(tidyverse)
+df <- read.csv('customer_data.csv')
+names(df)
+```
+
+
+**2. View the first 5 rows of the dataset to understand its structure.**
+
+```{r}
+five_rows = head(df,5)
+five_rows
+str(five_rows)
+
+```
+
+
+**3. How many rows and columns are in the dataset?**
+
+```{r}
+ncol(df)
+nrow(df)
+
+```
+
+
+**4. Find the maximum, minimum, and mean age of the customers.**
+
+```{r}
+max(df$age)
+min(df$age)
+mean(df$age)
+```
+
+
+**5. What are the three most common customer names?**
+
+
+```{r}
+# 
+
+df |> 
+  mutate(FullName = paste(first, last)) |>      # Create a new column 'FullName'
+  count(FullName, sort = TRUE) |>               # Count frequency of each full name
+  slice_head(n = 3)                             # Show top 3
+
+```
+
+
+**6. Identify the customers who have the same phone number.?**
+
+```{r}
+library(dplyr)
+
+df |> 
+  group_by(phone) |>                 # Group rows by 'phone' column
+  dplyr::filter(n() > 1) |>          # Keep only groups with more than 1 record (duplicate phones)
+  arrange(phone) |>                  # Sort the result by 'phone' for easier reading
+  ungroup()                          # Remove grouping to return a regular dataframe
+
+
+```
+
+
+**7. How many customers have the profession "Structural Engineer"?**
+
+```{r}
+
+df |> 
+  filter(profession == "Structural Engineer") |>  # Keep rows where profession is Structural Engineer
+  nrow()                                          # Count the number of such rows
+
+```
+
+
+**8. How many male customers are Structural Engineers?**
+
+```{r}
+df |> 
+  filter(profession == "Structural Engineer",  gender == "Male") |>  # Filter rows where profession is Structural Engineer AND gender is Male
+  nrow()                                                           # Count the number of such rows
+
+
+```
+
+
+**9. Find the female Structural Engineers from the province of Alberta (AB)** 
+
+```{r}
+df |> 
+  filter(profession == "Structural Engineer",    # Keep rows with profession Structural Engineer
+         gender == "Female",                      # Keep only females
+         province == "AB")                        # Keep only those from Alberta (AB)
+
+
+```
+
+
+**10. What is the maximum, minimum, and average spending amount?**
+
+```{r}
+df |> 
+  summarise(
+    max_spending = max(price.CAD., na.rm = TRUE),  # Maximum spending, ignoring missing values
+    min_spending = min(price.CAD., na.rm = TRUE),  # Minimum spending, ignoring missing values
+    avg_spending = mean(price.CAD., na.rm = TRUE)  # Average spending, ignoring missing values
+  )
+
+
+```
+
+
+**11. Who did not spend anything? Company wants to send a deal to encourage the customer to buy stuff!**
+
+```{r}
+df |> 
+  filter(price.CAD. == 0) 
+
+```
+
+
+**12. As a loyalty reward, company wants to send thanks coupon to those who spent 100CAD or more, please find out the customers?**
+
+```{r}
+df |> 
+  filter(price.CAD. >= 100) 
+
+```
+
+
+**13. How many emails are associated with this credit card number '5020000000000230'?**
+
+```{r}
+
+sum(df$cc_no == 5020000000000230) 
+
+```
+
+
+**14. We need to send new cards to the customers well before the expire, how many cards are expiring in 2019?**
+
+```{r}
+# Use lubridate::ymd() to convert 'cc_exp' to Date type and filter for the year 2019
+# Try learning new things!!
+
+
+library(lubridate)  # Load lubridate for date handling
+
+df |> 
+  mutate(exp_date = my(cc_exp)) |>               # Convert "MM/YYYY" to Date (1st of each month assumed)
+  filter(year(exp_date) == 2019) |>              # Keep only rows where expiration year is 2019
+  nrow()                                         # Count how many cards expire in 2019
+
+
+
+```
+
+
+**15. How many people use Visa as their Credit Card Provider?**
+
+```{r}
+
+df |> 
+  filter(cc_type == "Visa") |>      # Keep only rows where the credit card type is Visa
+  nrow()                            # Count how many such rows (people)
+
+
+```
+
+
+**16. Can you find the customer who spent 100 CAD using Visa?**
+
+```{r}
+
+df |> 
+  filter(price.CAD. == 100, cc_type == "Visa")   # Find rows where spending is 100 and card type is Visa
+
+
+```
+
+
+**17. What are two most common professions?**
+
+```{r}
+
+df |> 
+  count(profession, sort = TRUE) |>   # Count each profession and sort descending
+  head(2)                             # Show top 2
+
+
+```
+
+
+**18. Can you tell the top 5 most popular email providers? (e.g. gmail.com, yahoo.com, etc...)**
+
+```{r}
+# use stringr::str_extract() to extract email providers
+# Try learning new things!!
+
+
+library(stringr)
+
+df |> 
+  mutate(email_provider = str_extract(email, "(?<=@).*")) |>  # Extract part after @ from email
+  count(email_provider, sort = TRUE) |>                       # Count and sort
+  head(5)                                                     # Show top 5
+
+
+
+```
+
+
+**19. Is there any customer who is using email with "am.edu"?**
+
+```{r}
+# use stringr::str_detect() to find customers with "am.edu" in their email.
+
+df |> 
+  filter(str_detect(email, "am.edu"))   # Use regex to find emails containing "am.edu"
+
+```
+
+
+**20. Which day of the week, the store gets more customers?**
+
+```{r}
+# Convert the 'date' to Date type and extract the day of the week
+
+library(lubridate)
+
+df |> 
+  mutate(date_parsed = mdy(date)) |>                        # Convert 'date' string to Date object
+  mutate(day_of_week = wday(date_parsed, label = TRUE)) |>  # Extract weekday name (Mon, Tue...)
+  count(day_of_week, sort = TRUE) |>                        # Count customers per weekday, sorted descending
+  head(1)                                                   # Show only the top (most frequent) weekday
+
+```
+
+
+
